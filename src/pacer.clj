@@ -1,7 +1,4 @@
 (ns pacer
-    (:import
-      (com.tinkerpop.blueprints.impls.tg TinkerGraph)
-      (com.tinkerpop.gremlin.pipes.transform InEdgesPipe))
     (:use [clojure.pprint :only [pprint]]
           pacer.step))
 
