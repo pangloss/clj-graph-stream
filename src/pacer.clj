@@ -45,6 +45,7 @@
                      ~(list step))))
             steps)))
 
+
 (comment
   (route g v (loop (out-e :x) in-v :max 5 :while ??))
   (route g v (loop { max: 5 } (out-e :x) in-v))
@@ -58,4 +59,7 @@
                :max-depth 4 ; would not call loop-if when at max
                :min-depth 2 ; would not emit or call emit-if
                (out-e :x) in-v))
-  (route g v (branch { :a (v out-e) :b (v in out)} ) (merge :a :b)) )
+  (route g v (branch { :a (v out-e) :b (v in out)} ) (merge :a :b))
+  (route g v (lookahead out { :name "Frank" } (in :knows) #{ some-vertex }))
+
+  )
