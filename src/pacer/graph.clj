@@ -10,6 +10,7 @@
   { :source true
     :type :graph
     :name "TinkerGraph"
+    :show (fn [g] (str @(:raw-graph g)))
     :raw-graph (atom (com.tinkerpop.blueprints.impls.tg.TinkerGraph.))
     :encoder (atom (pacer/simple-encoder))})
 
@@ -40,27 +41,35 @@
     :iterator (fn iterator [source]
                   (.. @(:raw-graph source) getEdges iterator)) })
 
+(defn- name+ [name labels]
+       (if (empty? labels)
+         name
+         (str name " (" (join ", " labels) ")")))
+
+(defn- strs [args]
+       (into-array String (map str args)))
+
 (defn out-e [& labels]
   { :source-type :vertex
-     :type :edge
-     :name (str "OutE (" (join ", " labels) ")")
-     :labels labels
-     :pipe (fn pipe [in]
-               (OutEdgesPipe. (into-array String (map str labels)))) })
+    :type :edge
+    :name (name+ "OutE" labels)
+    :labels labels
+    :pipe (fn pipe [in]
+              (OutEdgesPipe. (strs labels))) })
 
 (defn in-e [& labels]
   { :source-type :vertex
-     :type :edge
-     :name (str "InE (" (join ", " labels) ")")
-     :labels labels
-     :pipe (fn pipe [in]
-               (InEdgesPipe. (into-array String (map str labels)))) })
+    :type :edge
+    :name (name "InE" labels)
+    :labels labels
+    :pipe (fn pipe [in]
+              (InEdgesPipe. (strs labels))) })
 
 (defn both-e [& labels]
   { :source-type :vertex
-     :type :edge
-     :name (str "BothE (" (join ", " labels) ")")
-     :labels labels
-     :pipe (fn pipe [in]
-               (BothEdgesPipe. (into-array String (map str labels)))) })
+    :type :edge
+    :name (name+ "BothE" labels)
+    :labels labels
+    :pipe (fn pipe [in]
+              (BothEdgesPipe. (strs labels))) })
 
