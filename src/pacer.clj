@@ -37,8 +37,10 @@
   [route]
   (:pipe (build-pipe route)))
 
-(defn route [& steps]
-  (vec steps))
-
 (defmacro route [& steps]
-  (vec (map #(if (list? %) % (list %)) steps)))
+  (vec (map (fn [step]
+                `(let [step# ~step]
+                   (if (map? step#)
+                     step#
+                     ~(list step))))
+            steps)))

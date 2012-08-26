@@ -3,6 +3,7 @@
       (com.tinkerpop.blueprints.impls.tg TinkerGraph)
       (com.tinkerpop.gremlin.pipes.transform InEdgesPipe OutEdgesPipe))
     (:use [clojure.pprint :only [pprint]]
+          [clojure.string :only [join]]
           pacer.step))
 
 (defn tg []
@@ -24,6 +25,7 @@
     :element (.addEdge @(:raw-graph graph) nil (:element from) (:element to) (str label))
     })
 
+
 (defn v []
   { :source-type :graph
     :type :vertex
@@ -41,14 +43,24 @@
 (defn out-e [& labels]
   { :source-type :vertex
      :type :edge
-     :name "OutE"
+     :name (str "OutE (" (join ", " labels) ")")
+     :labels labels
      :pipe (fn pipe [in]
                (OutEdgesPipe. (into-array String (map str labels)))) })
 
 (defn in-e [& labels]
   { :source-type :vertex
      :type :edge
-     :name "InE"
+     :name (str "InE (" (join ", " labels) ")")
+     :labels labels
      :pipe (fn pipe [in]
                (InEdgesPipe. (into-array String (map str labels)))) })
+
+(defn both-e [& labels]
+  { :source-type :vertex
+     :type :edge
+     :name (str "BothE (" (join ", " labels) ")")
+     :labels labels
+     :pipe (fn pipe [in]
+               (BothEdgesPipe. (into-array String (map str labels)))) })
 
