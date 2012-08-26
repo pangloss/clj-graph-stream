@@ -28,6 +28,11 @@
   ([graph]
    (conj [graph] (first (v)))))
 
+(defn- check-step [in step]
+       (when (not= (:source-type step) (:type in))
+         (throw (Exception. (str (describe-step step) " expects type "
+                                 (:source-type step) " but got " (:type in))))))
+
 (defn- pipe-from-step [in step]
        (cond
          (:pipe step) (doto (:pipe step)
@@ -39,9 +44,9 @@
   "Build a pipe from a route definition"
   [[source & route]]
   (reduce (fn [in step]
-              (pprint in)
+              (check-step in step)
               { :pipe (pipe-from-step in step)
                 :type (:type step (:type in))
                 :route (conj (:route in) step)})
-          { :source source :route [] }
+          { :source source, :type (:type source), :route [] }
           route))
