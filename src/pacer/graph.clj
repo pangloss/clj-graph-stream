@@ -4,6 +4,7 @@
       (com.tinkerpop.gremlin.pipes.transform InEdgesPipe OutEdgesPipe BothEdgesPipe
                                              InPipe OutPipe BothPipe
                                              InVertexPipe OutVertexPipe BothVerticesPipe
+                                             PropertyMapPipe LabelPipe
                                              ))
     (:use [clojure.pprint :only [pprint]]
           [clojure.string :only [join]]
@@ -29,6 +30,19 @@
     :element (.addEdge @(:raw-graph graph) nil (:element from) (:element to) (str label))
     })
 
+(defn properties
+  ([element])
+  ([]
+   { :source-type #{:vertex :edge}
+     :type :map
+     :name "properties"
+     :pipe (fn pipe [in] (PropertyMapPipe.))}))
+
+(defn labels []
+  { :source-type :edge
+    :type :string
+    :name "labels"
+    :pipe (fn pipe [in] (LabelPipe.))})
 
 (defn v []
   { :source-type :graph
