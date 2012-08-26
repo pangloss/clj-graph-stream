@@ -7,7 +7,13 @@
       name)))
 
 (defn check-step [in step]
-  (when (not= (:source-type step) (:type in))
-    (throw (Exception. (str (describe-step step) " expects type "
-                            (:source-type step) " but got " (:type in))))))
+  (println "check-step")
+  (when-let [rule (:source-type step)]
+    (let [type (:type in :unspecified)
+          check-fn (if (fn? rule)
+                     rule
+                     (fn [in] ((if (set? rule) rule (set [rule])) type)))]
+      (prn type rule check-fn)
+      (when-not (check-fn in)
+        (throw (Exception. (str "Step \""(describe-step step) "\" expects type " rule " but got " type)))))))
 
