@@ -44,3 +44,18 @@
                      step#
                      ~(list step))))
             steps)))
+
+(comment
+  (route g v (loop (out-e :x) in-v :max 5 :while ??))
+  (route g v (loop { max: 5 } (out-e :x) in-v))
+  (route g v (loop
+               (fn [v path loop emit] (loop) (emit path))
+               ; fn could use CPS. would that cause stack overflow?
+               ; we could cause the continuations to enqueue the elemnent and return, not actually continue
+               ; cps advantage is that I could use args to emit other things than simply the current element if I gave it args.
+               :emit-if #() ; return t/f
+               :loop-if #() ; return t/f
+               :max-depth 4 ; would not call loop-if when at max
+               :min-depth 2 ; would not emit or call emit-if
+               (out-e :x) in-v))
+  (route g v (branch { :a (v out-e) :b (v in out)} ) (merge :a :b)) )
