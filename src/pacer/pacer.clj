@@ -5,7 +5,8 @@
 
 (defn simple-encoder [] { :encode nil :decode nil })
 (defn tg []
-  { :type :graph
+  { :source true
+    :type :graph
     :name "TinkerGraph"
     :raw-graph (com.tinkerpop.blueprints.impls.tg.TinkerGraph.)
     :encoder (simple-encoder)})
@@ -23,10 +24,21 @@
   ([]
    [{ :source-type :graph
       :type :vertex
-      :name "GraphV"
+      :name "V"
       :iterator (fn v [source] (.. (:raw-graph source) getVertices iterator)) }])
   ([graph]
-   (conj [graph] (first (v)))))
+   (when (= :graph (:type graph))
+     (conj [graph] (first (v))))))
+
+(defn e
+  ([]
+   [{ :source-type :graph
+      :type :edge
+      :name "E"
+      :iterator (fn e [source] (.. (:raw-graph source) getEdges iterator)) }])
+  ([graph]
+   (when (= :graph (:type graph))
+     (conj [graph] (first (e))))))
 
 (defn- check-step [in step]
        (when (not= (:source-type step) (:type in))
@@ -43,10 +55,14 @@
 (defn pipe
   "Build a pipe from a route definition"
   [[source & route]]
-  (reduce (fn [in step]
-              (check-step in step)
-              { :pipe (pipe-from-step in step)
+  (if route
+    (reduce (fn [in step]
+                (check-step in step)
+                { :pipe (pipe-from-step in step)
                 :type (:type step (:type in))
                 :route (conj (:route in) step)})
-          { :source source, :type (:type source), :route [] }
-          route))
+            { :source source, :type (:type source), :route [] }
+            route)
+    source))
+
+
