@@ -1,6 +1,7 @@
 (ns pacer
     (:import
-      (com.tinkerpop.blueprints.impls.tg TinkerGraph)))
+      (com.tinkerpop.blueprints.impls.tg TinkerGraph))
+    (:use [clojure.pprint :only [pprint]]))
 
 (defn simple-encoder [] { :encode nil :decode nil })
 (defn tg []
@@ -23,26 +24,24 @@
    [{ :source-type :graph
       :type :vertex
       :name "GraphV"
-      :iterator (fn [source] (.. (:raw-graph source) getVertices iterator)) }])
+      :iterator (fn v [source] (.. (:raw-graph source) getVertices iterator)) }])
   ([graph]
    (conj [graph] (first (v)))))
 
-(defn- pipe-from-step [source step]
+(defn- pipe-from-step [in step]
        (cond
          (:pipe step) (doto (:pipe step)
-                            (.setStarts source))
-         (:build-pipe step) (throw (Exception. "Not Implemented"))
-         (:iterator step) ((:iterator step) source)
+                            (.setStarts (:pipe in (:source in))))
+         (:iterator step) ((:iterator step) (:pipe in (:source in)))
          :else (throw (Exception. "Don't know how to build step"))))
 
 (defn pipe
   "Build a pipe from a route definition"
-  ([[source step & route]]
-   (if route
-     (pipe (pipe-from-step source step) route)
-     (pipe-from-step source step)))
-  ([iter [step & route]]
-   (if route
-     (recur (pipe-from-step iter step) route)
-     (pipe-from-step iter step))))
-
+  [[source & route]]
+  (reduce (fn [in step]
+              (pprint in)
+              { :pipe (pipe-from-step in step)
+                :type (:type step (:type in))
+                :route (conj (:route in) step)})
+          { :source source :route [] }
+          route))
