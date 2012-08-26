@@ -9,22 +9,34 @@
   { :source true
     :type :graph
     :name "TinkerGraph"
-    :raw-graph (com.tinkerpop.blueprints.impls.tg.TinkerGraph.)
-    :encoder (pacer/simple-encoder)})
+    :raw-graph (atom (com.tinkerpop.blueprints.impls.tg.TinkerGraph.))
+    :encoder (atom (pacer/simple-encoder))})
+
+(defn create-vertex [graph]
+  { :graph graph
+    :type :vertex
+    :element (.addVertex @(:raw-graph graph) nil)
+    })
+
+(defn create-edge [graph label from to]
+  { :graph graph
+    :type :edge
+    :element (.addEdge @(:raw-graph graph) nil (:element from) (:element to) (str label))
+    })
 
 (defn v []
   { :source-type :graph
     :type :vertex
     :name "V"
     :iterator (fn iterator [source]
-                  (.. (:raw-graph source) getVertices iterator)) })
+                  (.. @(:raw-graph source) getVertices iterator)) })
 
 (defn e []
   { :source-type :graph
     :type :edge
     :name "E"
     :iterator (fn iterator [source]
-                  (.. (:raw-graph source) getEdges iterator)) })
+                  (.. @(:raw-graph source) getEdges iterator)) })
 
 (defn out-e [& labels]
   { :source-type :vertex
