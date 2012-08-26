@@ -10,53 +10,45 @@
           [clojure.string :only [join]]
           pacer.step))
 
+(defprotocol PacerGraph
+             (create-vertex [graph])
+             (create-edge [graph label from to])
+             (encode [graph value])
+             (decode [graph value]))
+
+(defrecord Vertex [graph element])
+(defrecord Edge [graph element])
+
+(defrecord Graph [name raw-graph encoder]
+           Object
+           (toString [g] (str @(:raw-graph g)))
+           PacerGraph
+           (create-vertex [graph]
+                          (Vertex. graph (.addVertex @(:raw-graph graph) nil)))
+           (create-edge [graph label from to]
+                        (Edge. graph (.addEdge @(:raw-graph graph) nil (:element from) (:element to) (str label))))
+           (encode [graph value] ((:encode encoder) value))
+           (decode [graph value] ((:decode encoder) value)))
+
 (defn tg []
-  { :source true
-    :type :graph
-    :name "TinkerGraph"
-    :show (fn [g] (str @(:raw-graph g)))
-    :raw-graph (atom (com.tinkerpop.blueprints.impls.tg.TinkerGraph.))
-    :encoder (atom (pacer/simple-encoder))})
+  (Graph. "TinkerGraph"
+          (atom (com.tinkerpop.blueprints.impls.tg.TinkerGraph.))
+          (atom (pacer/simple-encoder))))
 
-(defn create-vertex [graph]
-  { :graph graph
-    :type :vertex
-    :element (.addVertex @(:raw-graph graph) nil)
-    })
 
-(defn create-edge [graph label from to]
-  { :graph graph
-    :type :edge
-    :element (.addEdge @(:raw-graph graph) nil (:element from) (:element to) (str label))
-    })
-
-(defn properties
-  ([element])
-  ([]
-   { :source-type #{:vertex :edge}
-     :type :map
-     :name "properties"
-     :pipe (fn pipe [in] (PropertyMapPipe.))}))
-
-(defn labels []
-  { :source-type :edge
-    :type :string
-    :name "labels"
-    :pipe (fn pipe [in] (LabelPipe.))})
+(step-type GraphSourced [source-type type name iterator]
+           IteratorStep
+           (iterator [s in] (iterator s in)))
 
 (defn v []
-  { :source-type :graph
-    :type :vertex
-    :name "V"
-    :iterator (fn iterator [source]
-                  (.. @(:raw-graph source) getVertices iterator)) })
+  (GraphSourced. :graph :vertex "V"
+              (fn iterator [source]
+                  (.. @(:raw-graph source) getVertices iterator))))
 
 (defn e []
-  { :source-type :graph
-    :type :edge
-    :name "E"
-    :iterator (fn iterator [source]
-                  (.. @(:raw-graph source) getEdges iterator)) })
+  (GraphSourced. :graph :edge "E"
+              (fn iterator [source]
+                  (.. @(:raw-graph source) getEdges iterator))))
 
 (defn- name+ [name labels]
        (if (empty? labels)
@@ -66,72 +58,52 @@
 (defn- strs [args]
        (into-array String (map str args)))
 
+(step-type EdgeStep [source-type type name labels pipe-fn]
+           PipeStep
+           (build-pipe [step in] (pipe-fn step in)))
+
+(defmacro edge-step [type name labels pipe]
+  `(EdgeStep. :vertex ~type (name+ ~name ~labels) ~labels
+              (fn pipe [in#] (new ~pipe (strs ~labels)))))
+
 (defn out-e [& labels]
-  { :source-type :vertex
-    :type :edge
-    :name (name+ "OutE" labels)
-    :labels labels
-    :pipe (fn pipe [in]
-              (OutEdgesPipe. (strs labels))) })
+  (edge-step :edge "OutE" labels OutEdgesPipe))
 
 (defn in-e [& labels]
-  { :source-type :vertex
-    :type :edge
-    :name (name "InE" labels)
-    :labels labels
-    :pipe (fn pipe [in]
-              (InEdgesPipe. (strs labels))) })
+  (edge-step :edge "InE" labels InEdgesPipe))
 
 (defn both-e [& labels]
-  { :source-type :vertex
-    :type :edge
-    :name (name+ "BothE" labels)
-    :labels labels
-    :pipe (fn pipe [in]
-              (BothEdgesPipe. (strs labels))) })
+  (edge-step :edge "BothE" labels BothEdgesPipe))
 
 (defn out [& labels]
-  { :source-type :vertex
-    :type :vertex
-    :name (name+ "Out" labels)
-    :labels labels
-    :pipe (fn pipe [in]
-              (OutPipe. (strs labels))) })
+  (edge-step :vertex "Out" labels OutPipe))
 
 (defn in [& labels]
-  { :source-type :vertex
-    :type :vertex
-    :name (name+ "In" labels)
-    :labels labels
-    :pipe (fn pipe [in]
-              (InPipe. (strs labels))) })
+  (edge-step :vertex "In" labels InPipe))
 
 (defn both [& labels]
-  { :source-type :vertex
-    :type :vertex
-    :name (name+ "Both" labels)
-    :labels labels
-    :pipe (fn pipe [in]
-              (BothPipe. (strs labels))) })
+  (edge-step :vertex "Both" labels BothPipe))
+
+(step-type SimpleStep [source-type type name pipe-fn]
+           PipeStep
+           (build-pipe [step in] (pipe-fn step in)))
+
+(defmacro step [source-type type name pipe]
+  `(SimpleStep. ~source-type ~type ~name
+          (fn pipe [in#] (new ~pipe))))
 
 (defn out-v []
-  { :source-type :edge
-    :type :vertex
-    :name "OutV"
-    :pipe (fn pipe [in]
-              (OutVertexPipe.)) })
+  (step :edge :vertex "OutV" OutVertexPipe))
 
 (defn in-v []
-  { :source-type :edge
-    :type :vertex
-    :name "InV"
-    :pipe (fn pipe [in]
-              (InVertexPipe.)) })
+  (step :edge :vertex "InV" InVertexPipe))
 
 (defn both-v []
-  { :source-type :edge
-    :type :vertex
-    :name "BothV"
-    :pipe (fn pipe [in]
-              (BothVerticesPipe.)) })
+  (step :edge :vertex "BothV" BothVerticesPipe))
+
+(defn properties []
+  (step #{:vertex :edge} :map "properties" PropertyMapPipe))
+
+(defn labels []
+  (step :edge :string "labels" LabelPipe))
 

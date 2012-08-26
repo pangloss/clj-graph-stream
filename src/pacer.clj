@@ -18,7 +18,7 @@
          (:iterator step) ((:iterator step) (:pipe in (:source in)))
          :else (throw (Exception. "Don't know how to build step"))))
 
-(defn build-pipe [[source & route]]
+(defn build-pipeline [[source & route]]
   (if route
     (reduce (fn [in step]
                 (check-step in step)
@@ -32,7 +32,7 @@
 (defn pipe
   "Build a pipe from a route definition"
   [route]
-  (:pipe (build-pipe route)))
+  (:pipe (build-pipeline route)))
 
 (defmacro route [& steps]
   (vec (map (fn [step]
