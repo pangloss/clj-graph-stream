@@ -19,7 +19,7 @@
 (defrecord Vertex [graph element])
 (defrecord Edge [graph element])
 
-(defrecord Graph [name raw-graph encoder]
+(defrecord Graph [type name raw-graph encoder]
            Object
            (toString [g] (str @(:raw-graph g)))
            PacerGraph
@@ -55,7 +55,9 @@
 
 
 (defn tg []
-  (Graph. "TinkerGraph"
+  ; seems awkward to have the first argument be :graph but I don't know
+  ; a way for records to have default values.
+  (Graph. :graph "TinkerGraph"
           (atom (com.tinkerpop.blueprints.impls.tg.TinkerGraph.))
           (atom (pacer/simple-encoder))))
 
