@@ -22,6 +22,8 @@
 (defrecord Graph [type name raw-graph encoder]
            Object
            (toString [g] (str @(:raw-graph g)))
+           pacer.step/Step
+           (check [g in])
            PacerGraph
            (create-vertex [graph]
                           (Vertex. graph (.addVertex @(:raw-graph graph) nil)))
@@ -32,7 +34,7 @@
 
 
 
-(defstep IteratorPipe [source-type type name iterator]
+(defstep IteratorStep [source-type type name iterator]
                pacer.step/BuildIterator
                (iterator [s in] (iterator s in)))
 
@@ -63,12 +65,12 @@
 
 
 (defn v []
-  (IteratorPipe. :graph :vertex "V"
+  (IteratorStep. :graph :vertex "V"
               (fn iterator [step source]
                   (.. @(:raw-graph source) getVertices iterator))))
 
 (defn e []
-  (IteratorPipe. :graph :edge "E"
+  (IteratorStep. :graph :edge "E"
               (fn iterator [step source]
                   (.. @(:raw-graph source) getEdges iterator))))
 
