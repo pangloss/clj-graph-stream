@@ -8,7 +8,7 @@
                                              ))
     (:use [clojure.pprint :only [pprint]]
           [clojure.string :only [join]]
-          pacer.step))
+          [pacer.step :only [defstep]]))
 
 (defprotocol PacerGraph
              (create-vertex [graph])
@@ -30,24 +30,44 @@
            (encode [graph value] ((:encode encoder) value))
            (decode [graph value] ((:decode encoder) value)))
 
+
+
+(defstep IteratorPipe [source-type type name iterator]
+               pacer.step/BuildIterator
+               (iterator [s in] (iterator s in)))
+
+(defstep EdgeStep [source-type type name labels pipe-fn]
+               pacer.step/BuildPipe
+               (build-pipe [step in] (pipe-fn step in)))
+
+(defstep SimpleStep [source-type type name pipe-fn]
+               pacer.step/BuildPipe
+               (build-pipe [step in] (pipe-fn step in)))
+
+(defmacro edge-step [type name labels pipe]
+  `(EdgeStep. :vertex ~type (name+ ~name ~labels) ~labels
+              (fn pipe [step# in#] (new ~pipe (strs ~labels)))))
+
+(defmacro step [source-type type name pipe]
+  `(SimpleStep. ~source-type ~type ~name
+          (fn pipe [step# in#] (new ~pipe))))
+
+
+
 (defn tg []
   (Graph. "TinkerGraph"
           (atom (com.tinkerpop.blueprints.impls.tg.TinkerGraph.))
           (atom (pacer/simple-encoder))))
 
 
-(step-type GraphSourced [source-type type name iterator]
-           IteratorStep
-           (iterator [s in] (iterator s in)))
-
 (defn v []
-  (GraphSourced. :graph :vertex "V"
-              (fn iterator [source]
+  (IteratorPipe. :graph :vertex "V"
+              (fn iterator [step source]
                   (.. @(:raw-graph source) getVertices iterator))))
 
 (defn e []
-  (GraphSourced. :graph :edge "E"
-              (fn iterator [source]
+  (IteratorPipe. :graph :edge "E"
+              (fn iterator [step source]
                   (.. @(:raw-graph source) getEdges iterator))))
 
 (defn- name+ [name labels]
@@ -58,13 +78,6 @@
 (defn- strs [args]
        (into-array String (map str args)))
 
-(step-type EdgeStep [source-type type name labels pipe-fn]
-           PipeStep
-           (build-pipe [step in] (pipe-fn step in)))
-
-(defmacro edge-step [type name labels pipe]
-  `(EdgeStep. :vertex ~type (name+ ~name ~labels) ~labels
-              (fn pipe [in#] (new ~pipe (strs ~labels)))))
 
 (defn out-e [& labels]
   (edge-step :edge "OutE" labels OutEdgesPipe))
@@ -84,13 +97,6 @@
 (defn both [& labels]
   (edge-step :vertex "Both" labels BothPipe))
 
-(step-type SimpleStep [source-type type name pipe-fn]
-           PipeStep
-           (build-pipe [step in] (pipe-fn step in)))
-
-(defmacro step [source-type type name pipe]
-  `(SimpleStep. ~source-type ~type ~name
-          (fn pipe [in#] (new ~pipe))))
 
 (defn out-v []
   (step :edge :vertex "OutV" OutVertexPipe))
