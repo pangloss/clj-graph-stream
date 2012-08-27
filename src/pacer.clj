@@ -1,6 +1,7 @@
 (ns pacer
     (:use [clojure.pprint :only [pprint]]
-          pacer.step))
+          pacer.step
+     ))
 
 (defn simple-encoder [] { :encode nil :decode nil })
 
@@ -8,20 +9,20 @@
   "Show an easy to read"
   [route]
   (->> route
-       (map describe-step)
+       (map str)
        (clojure.string/join " -> ")))
 
 (defn- pipe-from-step [in step]
        (cond
-         (:pipe step) (doto ((:pipe step) in)
-                            (.setStarts (:pipe in (:source in))))
-         (:iterator step) ((:iterator step) (:pipe in (:source in)))
+         (satisfies? pacer.step/BuildPipe step) (doto (build-pipe step in)
+                                          (.setStarts (:pipe in (:source in))))
+         (satisfies? pacer.step/BuildIterator step) (iterator step (:pipe in (:source in)))
          :else (throw (Exception. "Don't know how to build step"))))
 
 (defn build-pipeline [[source & route]]
   (if route
     (reduce (fn [in step]
-                (check-step in step)
+                (check step in)
                 { :pipe (pipe-from-step in step)
                   :type (:type step (:type in))
                   :route (conj (:route in) step)})
@@ -45,7 +46,7 @@
 
 (comment
   (route g v (loop (out-e :x) in-v :max 5 :while ??))
-  (route g v (loop { max: 5 } (out-e :x) in-v))
+  (route g v (loop { :max 5 } (out-e :x) in-v))
   (route g v (loop
                (fn [v path loop emit] (loop) (emit path))
                ; fn could use CPS. would that cause stack overflow?
